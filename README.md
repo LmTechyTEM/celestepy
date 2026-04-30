@@ -7,7 +7,7 @@ But problem there's no API wrappers for it, so I make!
 Make sure you have git installed and run
 ```sh
 git clone https://github.com/LmTechyTEM/celestepy.git
-``
+```
 Then go into it, either using your terminal or your IDE open `template.py` (feel free to change this)
 Go to line 4 and change `token` to your bots token, since UG2 is still in early development bots don't really exist yet.
 So what you need to do is register a separate account for your bot.
