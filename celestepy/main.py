@@ -9,9 +9,9 @@ from .requester import Requester
 import websockets
 from websockets.exceptions import ConnectionClosed, InvalidStatusCode
 import threading
-
+from .commands import Commands
 class Client:
-    def __init__(self, token):
+    def __init__(self, token,commands:Commands=None):
         self.token = token
         self.ws_url = "wss://alpha-gateway.celeste.gg/?encoding=json&v=9"
         self.s:Requester = Requester(token)
@@ -22,7 +22,7 @@ class Client:
         self.heartbeat_task = None
         self.running = False
         self.reconnect = True
-
+        self.commands:Commands = commands
     def make_identify_payload(self):
         return {
             "op": 2,
@@ -196,11 +196,12 @@ class Client:
             #print(event_data)
             return
         if event_name == "READY":
+    
             self.session_id = event_data.get("session_id")
             info = json.dumps(event_data, indent=4)
             data = json.loads(info)
             self.guilds:list[Guild] = []
-            self.User:User = User(data["user"],self)
+            self.user:User = User(data["user"],self)
             self.ws_url = data["resume_gateway_url"]
             for guild in data["guilds"]:
                 g = Guild(guild,self)
@@ -226,6 +227,9 @@ class Client:
                 self.guilds.append(Guild(guild,self))
             keys = data.keys()
             #print(keys.keys())
+            if self.commands:
+                self.cmds=self.commands._init(self)
+                
             await self.on_ready(self)
             return
         if event_name == "PASSIVE_UPDATE_V2":
@@ -233,7 +237,15 @@ class Client:
             return
         
         if event_name == "MESSAGE_CREATE":
-            await self.on_message_create(Message(event_data,self))
+            m=Message(event_data,self)
+            await self.on_message_create(m)
+            if self.commands:
+                if m.content.startswith(self.commands.prefix):
+                    for command in self.commands.commands:
+                        if m.content.startswith(f"{self.commands.prefix}{command}"):
+                            func = self.commands.commands[command]["function"]
+                            await func(m)
+                            break
             return
 
 
